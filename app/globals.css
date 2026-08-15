@@ -114,21 +114,20 @@ pre {
   padding: 28px 0 44px;
 }
 
-.topbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px;
-  gap: 16px;
-  align-items: end;
-  padding: 26px;
+.brand-strip {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(41, 211, 194, 0.13), transparent 42%),
+    linear-gradient(135deg, rgba(41, 211, 194, 0.1), transparent 42%),
     linear-gradient(90deg, #10131b, #0d0f15);
 }
 
 .eyebrow {
-  margin: 0 0 10px;
+  margin: 0;
   color: var(--cyan);
   font-size: 12px;
   font-weight: 800;
@@ -143,40 +142,11 @@ p {
   margin-top: 0;
 }
 
-h1 {
-  max-width: 900px;
-  margin-bottom: 0;
-  font-size: 4.4rem;
-  line-height: 0.95;
-  letter-spacing: 0;
-  overflow-wrap: anywhere;
-}
-
 h2 {
   font-size: 2.15rem;
   line-height: 1.1;
   letter-spacing: 0;
   overflow-wrap: anywhere;
-}
-
-.target-panel {
-  display: grid;
-  gap: 4px;
-  justify-items: end;
-  padding: 14px;
-  border: 1px solid rgba(240, 184, 74, 0.45);
-  border-radius: 6px;
-  background: rgba(240, 184, 74, 0.08);
-}
-
-.target-panel span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.target-panel strong {
-  color: var(--amber);
-  font-size: 30px;
 }
 
 .metrics-grid {
@@ -650,22 +620,13 @@ label {
     padding-top: 10px;
   }
 
-  .topbar {
-    grid-template-columns: 1fr;
-    padding: 18px;
-  }
-
-  h1 {
-    font-size: 2rem;
-    line-height: 1;
+  .brand-strip {
+    min-height: 42px;
+    padding: 0 14px;
   }
 
   h2 {
     font-size: 1.45rem;
-  }
-
-  .target-panel {
-    justify-items: start;
   }
 
   .control-strip,
@@ -689,10 +650,6 @@ label {
 }
 
 @media (max-width: 520px) {
-  h1 {
-    font-size: 1.75rem;
-  }
-
   h2 {
     font-size: 1.25rem;
   }

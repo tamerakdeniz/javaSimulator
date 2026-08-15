@@ -30,12 +30,14 @@ test("server-renders the Java interview app shell", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Java Interview Command Center<\/title>/i);
-  assert.match(html, /Çarşamba teknik mülakatına yoğun hazırlık/);
+  assert.match(html, /Java Interview Command Center/i);
   assert.match(html, /Soru Lab/);
   assert.match(html, /Test/);
   assert.match(html, /HashMap nasıl çalışır/);
   assert.match(html, /Transactional Outbox Pattern/);
   assert.match(html, /AI Match/);
+  assert.doesNotMatch(html, /Çarşamba teknik mülakatına yoğun hazırlık/);
+  assert.doesNotMatch(html, /<strong>4 gün<\/strong>/);
   assert.doesNotMatch(html, /codex-preview/);
   assert.doesNotMatch(html, /Your site is taking shape/);
   assert.doesNotMatch(html, /react-loading-skeleton/);

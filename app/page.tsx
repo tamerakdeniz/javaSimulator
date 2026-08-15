@@ -384,22 +384,6 @@ async function transcribeWithDeepgram(blob: Blob, profile: Profile) {
   return transcript;
 }
 
-function daysUntil(dateValue: string) {
-  const target = new Date(`${dateValue}T12:00:00`);
-  if (Number.isNaN(target.getTime())) return null;
-  const today = new Date();
-  return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
-}
-
-function compactDate(dateValue: string) {
-  if (!dateValue) return "Tarih yok";
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "short",
-    weekday: "short",
-  }).format(new Date(`${dateValue}T12:00:00`));
-}
-
 function scoreLabel(score: number) {
   if (score >= 78) return "güçlü";
   if (score >= 55) return "yakın";
@@ -510,17 +494,6 @@ export default function Home() {
     value.trim(),
   ).length;
   const completionRate = Math.round((completedCount / questions.length) * 100);
-  const targetDiff = daysUntil(progress.profile.targetDate);
-  const targetDateLabel = hydrated
-    ? compactDate(progress.profile.targetDate)
-    : "Hazırlık";
-  const targetDiffLabel = hydrated
-    ? targetDiff === null
-      ? "tarih yok"
-      : targetDiff < 0
-        ? "geçti"
-        : `${targetDiff} gün`
-    : "--";
   const activeInterviewQuestion =
     questions.find(
       (question) => question.id === progress.activeInterviewQuestionId,
@@ -914,15 +887,8 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <section className="topbar">
-        <div>
-          <p className="eyebrow">Java Interview Command Center</p>
-          <h1>Çarşamba teknik mülakatına yoğun hazırlık</h1>
-        </div>
-        <div className="target-panel" aria-label="Mülakat hedef tarihi">
-          <span>{targetDateLabel}</span>
-          <strong>{targetDiffLabel}</strong>
-        </div>
+      <section className="brand-strip">
+        <p className="eyebrow">Java Interview Command Center</p>
       </section>
 
       <section className="metrics-grid" aria-label="Çalışma özeti">
@@ -1149,7 +1115,7 @@ export default function Home() {
 
           <aside className="side-panel" aria-label="Çalışma planı">
             <div className="section-title">
-              <span>4 günlük sprint</span>
+              <span>Çalışma sprinti</span>
             </div>
             <ol className="sprint-list">
               <li>Java Core, OOP, interface, HashMap, pattern.</li>
