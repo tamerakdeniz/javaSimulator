@@ -461,15 +461,6 @@ button.danger-button {
   margin-top: 12px;
 }
 
-.sprint-list {
-  display: grid;
-  gap: 8px;
-  margin: 0 0 18px;
-  padding-left: 22px;
-  color: #dbe4f0;
-  line-height: 1.45;
-}
-
 .category-matrix {
   display: grid;
   gap: 8px;

@@ -22,8 +22,6 @@ type Profile = {
   speechProvider: SpeechProvider;
   deepgramKey: string;
   deepgramSttModel: string;
-  targetDate: string;
-  notes: string;
 };
 
 type QuizStats = {
@@ -121,17 +119,6 @@ const MODES: Array<{ id: Mode; label: string }> = [
   { id: "settings", label: "Ayarlar" },
 ];
 
-function getNextWednesdayIso() {
-  const date = new Date();
-  const day = date.getDay();
-  const delta = (3 - day + 7) % 7 || 7;
-  date.setDate(date.getDate() + delta);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const dayOfMonth = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${dayOfMonth}`;
-}
-
 function createInitialProfile(): Profile {
   return {
     levelFilter: "ALL",
@@ -142,8 +129,6 @@ function createInitialProfile(): Profile {
     speechProvider: "browser",
     deepgramKey: "",
     deepgramSttModel: DEEPGRAM_DEFAULT_STT_MODEL,
-    targetDate: getNextWednesdayIso(),
-    notes: DEFAULT_NOTES,
   };
 }
 
@@ -231,10 +216,16 @@ function removeValue(values: string[], value: string) {
 }
 
 function normalizeProfile(
-  profile: Profile & { deepgramTtsModel?: string },
+  profile: Profile & {
+    deepgramTtsModel?: string;
+    notes?: string;
+    targetDate?: string;
+  },
 ): Profile {
   const normalized = { ...profile };
   delete normalized.deepgramTtsModel;
+  delete normalized.notes;
+  delete normalized.targetDate;
 
   return {
     ...normalized,
@@ -276,14 +267,14 @@ function localFeedback(question: Question, answer: string) {
   ].join("\n");
 }
 
-function buildFeedbackPrompt(question: Question, answer: string, notes: string) {
+function buildFeedbackPrompt(question: Question, answer: string) {
   return [
     "Sen 10 yıllık Java/Spring teknik mülakat koçusun.",
     "Aday junior veya junior-mid Java developer pozisyonuna hazırlanıyor.",
     "Cevabı Türkçe değerlendir. Gereksiz övgü verme, teknik ve net ol.",
     "Format: Skor /100, Güçlü Noktalar, Eksikler, Daha İyi Cevap, Muhtemel Takip Sorusu.",
     "",
-    `Mülakat notları:\n${notes}`,
+    `Mülakat notları:\n${DEFAULT_NOTES}`,
     "",
     `Soru: ${question.prompt}`,
     `Beklenen cevap: ${question.answer}`,
@@ -298,7 +289,7 @@ function buildQuestionPrompt(profile: Profile, existingPrompts: string[]) {
     "Soru CRM proje stack'i, SEM staj unit testleri, Spring Boot, Java Core, SQL, Security, microservice, observability veya DevOps notlarından birine dokunsun.",
     "Cevap verme. Sadece soruyu yaz.",
     "",
-    `Aday notları:\n${profile.notes}`,
+    `Aday notları:\n${DEFAULT_NOTES}`,
     "",
     `Daha önce sorulanlardan kaçın:\n${existingPrompts.slice(0, 12).join("\n")}`,
   ].join("\n");
@@ -589,7 +580,7 @@ export default function Home() {
 
     setAiLoading(question.id);
     try {
-      const prompt = buildFeedbackPrompt(question, answer, progress.profile.notes);
+      const prompt = buildFeedbackPrompt(question, answer);
       const feedback = await callAiProvider(progress.profile, prompt);
       setProgress((current) => ({
         ...current,
@@ -1130,16 +1121,6 @@ export default function Home() {
 
           <aside className="side-panel" aria-label="Çalışma planı">
             <div className="section-title">
-              <span>Çalışma sprinti</span>
-            </div>
-            <ol className="sprint-list">
-              <li>CRM mimarisi, Java 21, Spring Boot 4, Gateway.</li>
-              <li>PostgreSQL/Flyway/JPA, Kafka, Outbox, Debezium, Redis.</li>
-              <li>Keycloak JWT, Resilience4j, observability ve DevOps.</li>
-              <li>SEM staj unit testleri, proje anlatımı ve sesli mock.</li>
-            </ol>
-
-            <div className="section-title">
               <span>Konu matrisi</span>
             </div>
             <div className="category-matrix">
@@ -1518,26 +1499,8 @@ export default function Home() {
 
           <article className="settings-panel wide">
             <div className="section-title">
-              <span>Mülakat profili</span>
+              <span>Local veri</span>
             </div>
-            <label>
-              Hedef tarih
-              <input
-                type="date"
-                value={progress.profile.targetDate}
-                onChange={(event) =>
-                  updateProfile({ targetDate: event.target.value })
-                }
-              />
-            </label>
-            <label>
-              Notlar
-              <textarea
-                value={progress.profile.notes}
-                onChange={(event) => updateProfile({ notes: event.target.value })}
-                rows={12}
-              />
-            </label>
             <div className="action-row">
               <button type="button" onClick={exportProgress}>
                 İlerlemeyi indir

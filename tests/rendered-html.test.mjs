@@ -21,7 +21,8 @@ test("app source contains the interview simulator surface", async () => {
   assert.match(page, /Mikrofonla cevapla/);
   assert.match(page, /AI Soru/);
   assert.match(page, /Deepgram STT/);
-  assert.match(page, /CRM mimarisi, Java 21, Spring Boot 4, Gateway/);
+  assert.match(page, /Konu matrisi/);
+  assert.match(page, /Local veri/);
   assert.match(questions, /HashMap nasıl çalışır/);
   assert.match(questions, /Transactional Outbox Pattern/);
   assert.match(questions, /CRM projesinin mimarisini Java 21/);
@@ -29,6 +30,7 @@ test("app source contains the interview simulator surface", async () => {
   assert.match(questions, /JUnit 5, Mockito, Testcontainers/);
   assert.doesNotMatch(page, /Çarşamba teknik mülakatına yoğun hazırlık/);
   assert.doesNotMatch(page, /Soruyu seslendir|Sesleniyor|TTS modeli|browser-tr-TR/);
+  assert.doesNotMatch(page, /Çalışma sprinti|Mülakat profili|Hedef tarih/);
   assert.doesNotMatch(page, /target-panel|targetDiffLabel/);
 });
 
