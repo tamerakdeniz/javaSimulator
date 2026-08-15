@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   DEFAULT_MODELS,
   DEFAULT_NOTES,
@@ -401,6 +401,112 @@ function scoreLabel(score: number) {
   if (score >= 78) return "güçlü";
   if (score >= 55) return "yakın";
   return "tekrar";
+}
+
+function renderInlineMarkdown(text: string) {
+  const nodes: ReactNode[] = [];
+  const tokenPattern = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenPattern.exec(text))) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
+    const token = match[0];
+    const key = `${match.index}-${token}`;
+    if (token.startsWith("**")) {
+      nodes.push(<strong key={key}>{token.slice(2, -2)}</strong>);
+    } else {
+      nodes.push(<code key={key}>{token.slice(1, -1)}</code>);
+    }
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes.length ? nodes : text;
+}
+
+function isFeedbackHeading(line: string) {
+  return /^#{1,6}\s+/.test(line) || /^\*\*.+?\*\*\s*$/.test(line);
+}
+
+function renderFeedbackHeading(line: string, key: string) {
+  const text = line
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^\*\*(.+?)\*\*$/, "$1")
+    .replace(/:$/, "");
+  return <h4 key={key}>{text}</h4>;
+}
+
+function FeedbackContent({ text }: { text: string }) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const blocks: ReactNode[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) continue;
+
+    if (isFeedbackHeading(line)) {
+      blocks.push(renderFeedbackHeading(line, `heading-${index}`));
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(line)) {
+      const items: string[] = [];
+      while (index < lines.length && /^[-*]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[-*]\s+/, ""));
+        index += 1;
+      }
+      index -= 1;
+      blocks.push(
+        <ul key={`list-${index}`}>
+          {items.map((item, itemIndex) => (
+            <li key={`${itemIndex}-${item}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>,
+      );
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^\d+\.\s+/, ""));
+        index += 1;
+      }
+      index -= 1;
+      blocks.push(
+        <ol key={`ordered-${index}`}>
+          {items.map((item, itemIndex) => (
+            <li key={`${itemIndex}-${item}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ol>,
+      );
+      continue;
+    }
+
+    const paragraph: string[] = [line];
+    while (
+      index + 1 < lines.length &&
+      lines[index + 1].trim() &&
+      !isFeedbackHeading(lines[index + 1].trim()) &&
+      !/^[-*]\s+/.test(lines[index + 1].trim()) &&
+      !/^\d+\.\s+/.test(lines[index + 1].trim())
+    ) {
+      index += 1;
+      paragraph.push(lines[index].trim());
+    }
+
+    blocks.push(
+      <p key={`paragraph-${index}`}>
+        {renderInlineMarkdown(paragraph.join(" "))}
+      </p>,
+    );
+  }
+
+  return <div className="feedback-box">{blocks}</div>;
 }
 
 export default function Home() {
@@ -1095,10 +1201,12 @@ export default function Home() {
                 <div className="section-title">
                   <span>AI / Yerel feedback</span>
                 </div>
-                <pre className="feedback-box">
-                  {progress.aiFeedback[selectedQuestion.id] ??
-                    "AI Match çalıştırıldığında veya provider yoksa yerel rubrik burada görünecek."}
-                </pre>
+                <FeedbackContent
+                  text={
+                    progress.aiFeedback[selectedQuestion.id] ??
+                    "AI Match çalıştırıldığında veya provider yoksa yerel rubrik burada görünecek."
+                  }
+                />
               </section>
             </div>
 
@@ -1387,7 +1495,7 @@ export default function Home() {
                     </span>
                     <strong>{turn.question}</strong>
                     <p>{turn.answer}</p>
-                    <pre>{turn.feedback}</pre>
+                    <FeedbackContent text={turn.feedback} />
                   </div>
                 ))
               ) : (
