@@ -6,8 +6,10 @@ Java teknik mülakat hazırlığı için local-first Next.js uygulaması.
 
 - Seviye ve konu filtresiyle Java/Spring soru bankası
 - Yazılı cevap girme, beklenen cevabı görme ve yerel rubrik skoru
+- Soru Lab ve mock mülakatta mikrofonla cevap transkripti
 - Çoktan seçmeli test modu ve yanlışlardan tekrar havuzu
-- Mock mülakat modu, tarayıcı ses özellikleri ve opsiyonel Deepgram
+- Mock mülakat modu ve opsiyonel Deepgram STT
+- Ayrı AI Soru modu ile kişisel soru üretimi
 - Opsiyonel Gemini, OpenAI veya Claude API key ile AI feedback
 - Tüm kullanıcı verileri ve API keyler tarayıcı localStorage alanında tutulur
 

@@ -11,7 +11,7 @@ import {
   type SpeechProvider,
 } from "./questions";
 
-type Mode = "study" | "quiz" | "retry" | "interview" | "settings";
+type Mode = "study" | "quiz" | "retry" | "interview" | "generate" | "settings";
 
 type Profile = {
   levelFilter: LevelFilter;
@@ -22,7 +22,6 @@ type Profile = {
   speechProvider: SpeechProvider;
   deepgramKey: string;
   deepgramSttModel: string;
-  deepgramTtsModel: string;
   targetDate: string;
   notes: string;
 };
@@ -106,15 +105,19 @@ type SpeechRecognitionEventLike = {
   };
 };
 
+type VoiceTarget =
+  | { kind: "study"; questionId: string }
+  | { kind: "interview" };
+
 const STORAGE_KEY = "java-interview-command-center-v1";
 const DEEPGRAM_DEFAULT_STT_MODEL = "nova-2";
-const TURKISH_BROWSER_TTS_MODEL = "browser-tr-TR";
 
 const MODES: Array<{ id: Mode; label: string }> = [
   { id: "study", label: "Soru Lab" },
   { id: "quiz", label: "Test" },
   { id: "retry", label: "Tekrar" },
   { id: "interview", label: "Mülakat" },
+  { id: "generate", label: "AI Soru" },
   { id: "settings", label: "Ayarlar" },
 ];
 
@@ -139,7 +142,6 @@ function createInitialProfile(): Profile {
     speechProvider: "browser",
     deepgramKey: "",
     deepgramSttModel: DEEPGRAM_DEFAULT_STT_MODEL,
-    deepgramTtsModel: TURKISH_BROWSER_TTS_MODEL,
     targetDate: getNextWednesdayIso(),
     notes: DEFAULT_NOTES,
   };
@@ -228,23 +230,17 @@ function removeValue(values: string[], value: string) {
   return values.filter((item) => item !== value);
 }
 
-function normalizeProfile(profile: Profile): Profile {
-  const deepgramTtsModel =
-    profile.deepgramTtsModel.trim() === "aura-asteria-en"
-      ? TURKISH_BROWSER_TTS_MODEL
-      : profile.deepgramTtsModel.trim() || TURKISH_BROWSER_TTS_MODEL;
+function normalizeProfile(
+  profile: Profile & { deepgramTtsModel?: string },
+): Profile {
+  const normalized = { ...profile };
+  delete normalized.deepgramTtsModel;
 
   return {
-    ...profile,
+    ...normalized,
     deepgramSttModel:
-      profile.deepgramSttModel.trim() || DEEPGRAM_DEFAULT_STT_MODEL,
-    deepgramTtsModel,
+      normalized.deepgramSttModel.trim() || DEEPGRAM_DEFAULT_STT_MODEL,
   };
-}
-
-function isDeepgramTurkishTtsModel(model: string) {
-  const normalized = model.trim().toLowerCase();
-  return normalized.startsWith("aura-") && normalized.endsWith("-tr");
 }
 
 function calculateCoverage(question: Question, answer: string): Coverage {
@@ -430,8 +426,8 @@ export default function Home() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [interviewAnswer, setInterviewAnswer] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingTarget, setRecordingTarget] = useState<VoiceTarget | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -537,6 +533,11 @@ export default function Home() {
       ).length;
       return { category, total, done };
     });
+  const studyVoiceTarget: VoiceTarget = {
+    kind: "study",
+    questionId: selectedQuestion.id,
+  };
+  const interviewVoiceTarget: VoiceTarget = { kind: "interview" };
 
   function updateProfile(patch: Partial<Profile>) {
     setProgress((current) => ({
@@ -646,112 +647,45 @@ export default function Home() {
     return pool[0] ?? filteredQuestions[0] ?? questions[0];
   }
 
-  async function getBrowserVoices() {
-    const synth = window.speechSynthesis;
-    const voices = synth.getVoices();
-    if (voices.length) return voices;
-
-    return new Promise<SpeechSynthesisVoice[]>((resolve) => {
-      const timeout = window.setTimeout(() => {
-        synth.removeEventListener("voiceschanged", handleVoicesChanged);
-        resolve(synth.getVoices());
-      }, 350);
-
-      function handleVoicesChanged() {
-        window.clearTimeout(timeout);
-        synth.removeEventListener("voiceschanged", handleVoicesChanged);
-        resolve(synth.getVoices());
-      }
-
-      synth.addEventListener("voiceschanged", handleVoicesChanged);
-    });
-  }
-
-  async function speakWithBrowser(text: string) {
-    if (!("speechSynthesis" in window)) {
-      throw new Error("Browser speech synthesis desteklenmiyor.");
-    }
-    const voices = await getBrowserVoices();
-    const turkishVoice =
-      voices.find((voice) => voice.lang.toLowerCase() === "tr-tr") ??
-      voices.find((voice) => voice.lang.toLowerCase().startsWith("tr"));
-
-    await new Promise<void>((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = turkishVoice?.lang ?? "tr-TR";
-      if (turkishVoice) utterance.voice = turkishVoice;
-      utterance.rate = 0.95;
-      utterance.onend = () => resolve();
-      utterance.onerror = () => resolve();
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-    });
-
-    return Boolean(turkishVoice);
-  }
-
-  async function speakWithDeepgram(text: string) {
-    const response = await fetch(
-      `https://api.deepgram.com/v1/speak?model=${encodeURIComponent(
-        progress.profile.deepgramTtsModel,
-      )}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Token ${progress.profile.deepgramKey.trim()}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      },
+  function isSameVoiceTarget(target: VoiceTarget) {
+    if (!recordingTarget) return false;
+    if (recordingTarget.kind !== target.kind) return false;
+    if (target.kind === "interview") return true;
+    return (
+      recordingTarget.kind === "study" &&
+      recordingTarget.questionId === target.questionId
     );
-    if (!response.ok) throw new Error(await response.text());
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    await new Promise<void>((resolve) => {
-      const audio = new Audio(audioUrl);
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      void audio.play();
-    });
   }
 
-  async function speakQuestion(text: string) {
-    setIsSpeaking(true);
-    try {
-      const canUseDeepgram =
-        progress.profile.speechProvider === "deepgram" &&
-        progress.profile.deepgramKey.trim() &&
-        isDeepgramTurkishTtsModel(progress.profile.deepgramTtsModel);
+  function appendTranscript(target: VoiceTarget, transcript: string) {
+    const cleaned = transcript.trim();
+    if (!cleaned) return;
 
-      if (canUseDeepgram) {
-        await speakWithDeepgram(text);
-      } else {
-        const hasTurkishBrowserVoice = await speakWithBrowser(text);
-        if (
-          progress.profile.speechProvider === "deepgram" &&
-          progress.profile.deepgramKey.trim()
-        ) {
-          setToast(
-            hasTurkishBrowserVoice
-              ? "Türkçe TTS için Browser tr-TR kullanıldı; Deepgram STT aktif."
-              : "Deepgram Türkçe TTS desteklemediği için browser tr-TR denendi; sisteminde Türkçe ses yoksa işletim sistemi seslerini kontrol et.",
-          );
-        }
-      }
-    } catch {
-      setToast("Seslendirme başarısız oldu; metin üzerinden devam edebilirsin.");
-    } finally {
-      setIsSpeaking(false);
+    if (target.kind === "study") {
+      setProgress((current) => ({
+        ...current,
+        answers: {
+          ...current.answers,
+          [target.questionId]: [current.answers[target.questionId], cleaned]
+            .filter(Boolean)
+            .join(" "),
+        },
+      }));
+      return;
     }
+
+    setInterviewAnswer((current) =>
+      [current, cleaned].filter(Boolean).join(" "),
+    );
   }
 
-  function startBrowserRecognition() {
+  function recordingLabel(target: VoiceTarget) {
+    if (isTranscribing && isSameVoiceTarget(target)) return "Transcript...";
+    if (isRecording && isSameVoiceTarget(target)) return "Kaydı durdur";
+    return target.kind === "study" ? "Mikrofonla cevapla" : "Mikrofon";
+  }
+
+  function startBrowserRecognition(target: VoiceTarget) {
     const browserWindow = window as Window & {
       SpeechRecognition?: SpeechRecognitionConstructor;
       webkitSpeechRecognition?: SpeechRecognitionConstructor;
@@ -766,27 +700,30 @@ export default function Home() {
     const recognition = new Recognition();
     recognition.lang = "tr-TR";
     recognition.continuous = false;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
     recognition.onresult = (event) => {
       let transcript = "";
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         transcript += event.results[index][0].transcript;
       }
-      setInterviewAnswer((current) =>
-        [current, transcript.trim()].filter(Boolean).join(" "),
-      );
+      appendTranscript(target, transcript);
     };
     recognition.onerror = () => {
       setToast("Ses tanıma başarısız oldu.");
       setIsRecording(false);
+      setRecordingTarget(null);
     };
-    recognition.onend = () => setIsRecording(false);
+    recognition.onend = () => {
+      setIsRecording(false);
+      setRecordingTarget(null);
+    };
     recognitionRef.current = recognition;
+    setRecordingTarget(target);
     setIsRecording(true);
     recognition.start();
   }
 
-  async function startDeepgramRecording() {
+  async function startDeepgramRecording(target: VoiceTarget) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
@@ -802,18 +739,18 @@ export default function Home() {
             type: recorder.mimeType || "audio/webm",
           });
           const transcript = await transcribeWithDeepgram(blob, progress.profile);
-          setInterviewAnswer((current) =>
-            [current, transcript].filter(Boolean).join(" "),
-          );
+          appendTranscript(target, transcript);
         } catch {
           setToast("Deepgram transcript alınamadı; cevabı yazarak tamamla.");
         } finally {
           stream.getTracks().forEach((track) => track.stop());
           setIsTranscribing(false);
+          setRecordingTarget(null);
           mediaRecorderRef.current = null;
         }
       };
       mediaRecorderRef.current = recorder;
+      setRecordingTarget(target);
       setIsRecording(true);
       recorder.start();
     } catch {
@@ -821,11 +758,16 @@ export default function Home() {
     }
   }
 
-  function toggleRecording() {
+  function toggleRecording(target: VoiceTarget) {
     if (isRecording) {
+      if (!isSameVoiceTarget(target)) {
+        setToast("Önce aktif ses kaydını durdur.");
+        return;
+      }
       if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
       if (recognitionRef.current) recognitionRef.current.stop();
       setIsRecording(false);
+      setRecordingTarget(null);
       return;
     }
 
@@ -833,10 +775,10 @@ export default function Home() {
       progress.profile.speechProvider === "deepgram" &&
       progress.profile.deepgramKey.trim()
     ) {
-      void startDeepgramRecording();
+      void startDeepgramRecording(target);
       return;
     }
-    startBrowserRecognition();
+    startBrowserRecognition(target);
   }
 
   function startInterview() {
@@ -848,7 +790,6 @@ export default function Home() {
     }));
     setInterviewAnswer("");
     setMode("interview");
-    void speakQuestion(first.prompt);
   }
 
   async function submitInterviewAnswer() {
@@ -884,7 +825,6 @@ export default function Home() {
       interviewTurns: [turn, ...current.interviewTurns].slice(0, 30),
     }));
     setInterviewAnswer("");
-    void speakQuestion(next.prompt);
   }
 
   async function generateAiQuestion() {
@@ -917,12 +857,9 @@ export default function Home() {
       setProgress((current) => ({
         ...current,
         customQuestions: [customQuestion, ...current.customQuestions].slice(0, 15),
-        activeInterviewQuestionId: customQuestion.id,
-        interviewRunning: true,
       }));
-      setInterviewAnswer("");
-      setToast("AI yeni mülakat sorusu üretti.");
-      void speakQuestion(questionText);
+      setSelectedId(customQuestion.id);
+      setToast("AI sorusu Soru Lab'a eklendi.");
     } catch {
       setToast("AI soru üretimi başarısız oldu.");
     } finally {
@@ -1091,6 +1028,17 @@ export default function Home() {
               rows={9}
             />
             <div className="action-row">
+              <button
+                type="button"
+                onClick={() => toggleRecording(studyVoiceTarget)}
+                className={isSameVoiceTarget(studyVoiceTarget) ? "danger-button" : ""}
+                disabled={
+                  isTranscribing ||
+                  (isRecording && !isSameVoiceTarget(studyVoiceTarget))
+                }
+              >
+                {recordingLabel(studyVoiceTarget)}
+              </button>
               <button
                 type="button"
                 onClick={() =>
@@ -1340,6 +1288,51 @@ export default function Home() {
         </section>
       )}
 
+      {mode === "generate" && (
+        <section className="solo-panel">
+          <div className="section-title">
+            <span>AI soru üret</span>
+            <strong>{progress.customQuestions.length}/15</strong>
+          </div>
+          <div className="action-row">
+            <button
+              type="button"
+              className="primary"
+              onClick={generateAiQuestion}
+              disabled={aiLoading === "generate-question"}
+            >
+              {aiLoading === "generate-question" ? "Üretiliyor..." : "Yeni soru üret"}
+            </button>
+            <button type="button" onClick={() => setMode("settings")}>
+              AI ayarları
+            </button>
+          </div>
+          {progress.customQuestions.length ? (
+            <div className="retry-grid">
+              {progress.customQuestions.map((question) => (
+                <button
+                  key={question.id}
+                  type="button"
+                  className="retry-item"
+                  onClick={() => {
+                    setSelectedId(question.id);
+                    setMode("study");
+                  }}
+                >
+                  <span>
+                    {question.level} · {question.category}
+                  </span>
+                  <strong>{question.prompt}</strong>
+                  <small>Soru Labda cevapla</small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-state">Henüz AI sorusu yok.</p>
+          )}
+        </section>
+      )}
+
       {mode === "interview" && (
         <section className="interview-grid">
           <article className="interview-stage">
@@ -1355,29 +1348,16 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={() => void speakQuestion(activeInterviewQuestion.prompt)}
-                disabled={isSpeaking}
+                onClick={() => toggleRecording(interviewVoiceTarget)}
+                className={
+                  isSameVoiceTarget(interviewVoiceTarget) ? "danger-button" : ""
+                }
+                disabled={
+                  isTranscribing ||
+                  (isRecording && !isSameVoiceTarget(interviewVoiceTarget))
+                }
               >
-                {isSpeaking ? "Sesleniyor..." : "Soruyu seslendir"}
-              </button>
-              <button
-                type="button"
-                onClick={toggleRecording}
-                className={isRecording ? "danger-button" : ""}
-                disabled={isTranscribing}
-              >
-                {isRecording
-                  ? "Kaydı durdur"
-                  : isTranscribing
-                    ? "Transcript..."
-                    : "Mikrofon"}
-              </button>
-              <button
-                type="button"
-                onClick={generateAiQuestion}
-                disabled={aiLoading === "generate-question"}
-              >
-                {aiLoading === "generate-question" ? "Üretiliyor..." : "AI soru üret"}
+                {recordingLabel(interviewVoiceTarget)}
               </button>
             </div>
             <textarea
@@ -1405,7 +1385,6 @@ export default function Home() {
                     interviewRunning: true,
                   }));
                   setInterviewAnswer("");
-                  void speakQuestion(next.prompt);
                 }}
               >
                 Soruyu geç
@@ -1505,8 +1484,8 @@ export default function Home() {
                   })
                 }
               >
-                <option value="browser">Browser speech</option>
-                <option value="deepgram">Deepgram STT + Browser TR TTS</option>
+                <option value="browser">Browser STT</option>
+                <option value="deepgram">Deepgram STT</option>
               </select>
             </label>
             <label>
@@ -1530,20 +1509,10 @@ export default function Home() {
                 }
               />
             </label>
-            <label>
-              TTS modeli
-              <input
-                value={progress.profile.deepgramTtsModel}
-                onChange={(event) =>
-                  updateProfile({ deepgramTtsModel: event.target.value })
-                }
-                placeholder={TURKISH_BROWSER_TTS_MODEL}
-              />
-            </label>
             <p className="settings-note">
-              Deepgram mikrofon cevabını Türkçe metne çevirmek için kullanılır.
-              Türkçe soru seslendirme Browser tr-TR ile yapılır; Deepgram ileride
-              -tr uzantılı Türkçe TTS modeli eklerse buraya yazabilirsin.
+              Ses modu sadece cevap transkripti içindir. Deepgram key varsa
+              mikrofon cevabı Deepgram ile Türkçe metne çevrilir; yoksa tarayıcı
+              STT denenir.
             </p>
           </article>
 
