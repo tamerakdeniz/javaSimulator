@@ -107,6 +107,8 @@ type SpeechRecognitionEventLike = {
 };
 
 const STORAGE_KEY = "java-interview-command-center-v1";
+const DEEPGRAM_DEFAULT_STT_MODEL = "nova-2";
+const TURKISH_BROWSER_TTS_MODEL = "browser-tr-TR";
 
 const MODES: Array<{ id: Mode; label: string }> = [
   { id: "study", label: "Soru Lab" },
@@ -136,8 +138,8 @@ function createInitialProfile(): Profile {
     apiKey: "",
     speechProvider: "browser",
     deepgramKey: "",
-    deepgramSttModel: "nova-2",
-    deepgramTtsModel: "aura-asteria-en",
+    deepgramSttModel: DEEPGRAM_DEFAULT_STT_MODEL,
+    deepgramTtsModel: TURKISH_BROWSER_TTS_MODEL,
     targetDate: getNextWednesdayIso(),
     notes: DEFAULT_NOTES,
   };
@@ -169,6 +171,11 @@ function mergeProgress(raw: string | null): Progress {
 
   try {
     const parsed = JSON.parse(raw) as Partial<Progress>;
+    const profile = normalizeProfile({
+      ...initial.profile,
+      ...(parsed.profile ?? {}),
+    });
+
     return {
       ...initial,
       ...parsed,
@@ -186,7 +193,7 @@ function mergeProgress(raw: string | null): Progress {
           ...(parsed.quiz?.lastAnswers ?? {}),
         },
       },
-      profile: { ...initial.profile, ...(parsed.profile ?? {}) },
+      profile,
     };
   } catch {
     return initial;
@@ -219,6 +226,25 @@ function addUnique(values: string[], value: string) {
 
 function removeValue(values: string[], value: string) {
   return values.filter((item) => item !== value);
+}
+
+function normalizeProfile(profile: Profile): Profile {
+  const deepgramTtsModel =
+    profile.deepgramTtsModel.trim() === "aura-asteria-en"
+      ? TURKISH_BROWSER_TTS_MODEL
+      : profile.deepgramTtsModel.trim() || TURKISH_BROWSER_TTS_MODEL;
+
+  return {
+    ...profile,
+    deepgramSttModel:
+      profile.deepgramSttModel.trim() || DEEPGRAM_DEFAULT_STT_MODEL,
+    deepgramTtsModel,
+  };
+}
+
+function isDeepgramTurkishTtsModel(model: string) {
+  const normalized = model.trim().toLowerCase();
+  return normalized.startsWith("aura-") && normalized.endsWith("-tr");
 }
 
 function calculateCoverage(question: Question, answer: string): Coverage {
@@ -363,7 +389,7 @@ async function callAiProvider(profile: Profile, prompt: string) {
 
 async function transcribeWithDeepgram(blob: Blob, profile: Profile) {
   const params = new URLSearchParams({
-    model: profile.deepgramSttModel || "nova-2",
+    model: profile.deepgramSttModel || DEEPGRAM_DEFAULT_STT_MODEL,
     language: "tr",
     punctuate: "true",
     smart_format: "true",
@@ -620,25 +646,54 @@ export default function Home() {
     return pool[0] ?? filteredQuestions[0] ?? questions[0];
   }
 
+  async function getBrowserVoices() {
+    const synth = window.speechSynthesis;
+    const voices = synth.getVoices();
+    if (voices.length) return voices;
+
+    return new Promise<SpeechSynthesisVoice[]>((resolve) => {
+      const timeout = window.setTimeout(() => {
+        synth.removeEventListener("voiceschanged", handleVoicesChanged);
+        resolve(synth.getVoices());
+      }, 350);
+
+      function handleVoicesChanged() {
+        window.clearTimeout(timeout);
+        synth.removeEventListener("voiceschanged", handleVoicesChanged);
+        resolve(synth.getVoices());
+      }
+
+      synth.addEventListener("voiceschanged", handleVoicesChanged);
+    });
+  }
+
   async function speakWithBrowser(text: string) {
     if (!("speechSynthesis" in window)) {
       throw new Error("Browser speech synthesis desteklenmiyor.");
     }
+    const voices = await getBrowserVoices();
+    const turkishVoice =
+      voices.find((voice) => voice.lang.toLowerCase() === "tr-tr") ??
+      voices.find((voice) => voice.lang.toLowerCase().startsWith("tr"));
+
     await new Promise<void>((resolve) => {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "tr-TR";
+      utterance.lang = turkishVoice?.lang ?? "tr-TR";
+      if (turkishVoice) utterance.voice = turkishVoice;
       utterance.rate = 0.95;
       utterance.onend = () => resolve();
       utterance.onerror = () => resolve();
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     });
+
+    return Boolean(turkishVoice);
   }
 
   async function speakWithDeepgram(text: string) {
     const response = await fetch(
       `https://api.deepgram.com/v1/speak?model=${encodeURIComponent(
-        progress.profile.deepgramTtsModel || "aura-asteria-en",
+        progress.profile.deepgramTtsModel,
       )}`,
       {
         method: "POST",
@@ -669,13 +724,25 @@ export default function Home() {
   async function speakQuestion(text: string) {
     setIsSpeaking(true);
     try {
-      if (
+      const canUseDeepgram =
         progress.profile.speechProvider === "deepgram" &&
-        progress.profile.deepgramKey.trim()
-      ) {
+        progress.profile.deepgramKey.trim() &&
+        isDeepgramTurkishTtsModel(progress.profile.deepgramTtsModel);
+
+      if (canUseDeepgram) {
         await speakWithDeepgram(text);
       } else {
-        await speakWithBrowser(text);
+        const hasTurkishBrowserVoice = await speakWithBrowser(text);
+        if (
+          progress.profile.speechProvider === "deepgram" &&
+          progress.profile.deepgramKey.trim()
+        ) {
+          setToast(
+            hasTurkishBrowserVoice
+              ? "Türkçe TTS için Browser tr-TR kullanıldı; Deepgram STT aktif."
+              : "Deepgram Türkçe TTS desteklemediği için browser tr-TR denendi; sisteminde Türkçe ses yoksa işletim sistemi seslerini kontrol et.",
+          );
+        }
       }
     } catch {
       setToast("Seslendirme başarısız oldu; metin üzerinden devam edebilirsin.");
@@ -1439,7 +1506,7 @@ export default function Home() {
                 }
               >
                 <option value="browser">Browser speech</option>
-                <option value="deepgram">Deepgram</option>
+                <option value="deepgram">Deepgram STT + Browser TR TTS</option>
               </select>
             </label>
             <label>
@@ -1464,14 +1531,20 @@ export default function Home() {
               />
             </label>
             <label>
-              TTS model
+              TTS modeli
               <input
                 value={progress.profile.deepgramTtsModel}
                 onChange={(event) =>
                   updateProfile({ deepgramTtsModel: event.target.value })
                 }
+                placeholder={TURKISH_BROWSER_TTS_MODEL}
               />
             </label>
+            <p className="settings-note">
+              Deepgram mikrofon cevabını Türkçe metne çevirmek için kullanılır.
+              Türkçe soru seslendirme Browser tr-TR ile yapılır; Deepgram ileride
+              -tr uzantılı Türkçe TTS modeli eklerse buraya yazabilirsin.
+            </p>
           </article>
 
           <article className="settings-panel wide">

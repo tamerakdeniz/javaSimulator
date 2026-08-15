@@ -18,6 +18,8 @@ test("app source contains the interview simulator surface", async () => {
   assert.match(page, /AI Match/);
   assert.match(page, /Mülakatı başlat/);
   assert.match(page, /Deepgram key/);
+  assert.match(page, /Deepgram STT \+ Browser TR TTS/);
+  assert.match(page, /browser-tr-TR/);
   assert.match(questions, /HashMap nasıl çalışır/);
   assert.match(questions, /Transactional Outbox Pattern/);
   assert.doesNotMatch(page, /Çarşamba teknik mülakatına yoğun hazırlık/);
