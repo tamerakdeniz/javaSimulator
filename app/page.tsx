@@ -299,7 +299,7 @@ function buildQuestionPrompt(profile: Profile, existingPrompts: string[]) {
   return [
     "Junior Java Developer teknik mülakatı için tek bir yeni soru üret.",
     `Hedef seviye: ${profile.levelFilter === "ALL" ? "JR-MID karma" : profile.levelFilter}`,
-    "Soru Spring Boot, Java Core, SQL, Security veya microservice notlarından birine dokunsun.",
+    "Soru CRM proje stack'i, SEM staj unit testleri, Spring Boot, Java Core, SQL, Security, microservice, observability veya DevOps notlarından birine dokunsun.",
     "Cevap verme. Sadece soruyu yaz.",
     "",
     `Aday notları:\n${profile.notes}`,
@@ -1185,10 +1185,10 @@ export default function Home() {
               <span>Çalışma sprinti</span>
             </div>
             <ol className="sprint-list">
-              <li>Java Core, OOP, interface, HashMap, pattern.</li>
-              <li>Spring Boot, REST, Security, JWT, Keycloak.</li>
-              <li>SQL/JPA, Kafka, Outbox, Debezium, Redis.</li>
-              <li>Sesli mock, proje anlatımı, AI tool cevapları.</li>
+              <li>CRM mimarisi, Java 21, Spring Boot 4, Gateway.</li>
+              <li>PostgreSQL/Flyway/JPA, Kafka, Outbox, Debezium, Redis.</li>
+              <li>Keycloak JWT, Resilience4j, observability ve DevOps.</li>
+              <li>SEM staj unit testleri, proje anlatımı ve sesli mock.</li>
             </ol>
 
             <div className="section-title">

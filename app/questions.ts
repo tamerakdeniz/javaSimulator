@@ -29,6 +29,8 @@ export const DEFAULT_NOTES = `Junior Java Developer teknik mulakat odagi:
 - Git, Maven/Gradle, debugging, logging, unit test, coverage, clean code.
 - Microservice: Gateway, BFF, Kafka, producer/consumer/topic, event-driven architecture, Redis, Config Server.
 - Transactional Outbox, retryCount, polling, Debezium CDC, idempotency, order-service/product-service stok akisi.
+- CRM proje stack'i: Java 21, Spring Boot 4.0.6, Spring Cloud 2025.1.1, Gateway, Springdoc OpenAPI, React 19, TypeScript 6, Vite 8, PostgreSQL 16, Flyway, Kafka, Debezium Kafka Connect, Redis 7, Keycloak JWT, Resilience4j, Actuator, Micrometer, Prometheus, Grafana, OpenTelemetry, Zipkin, Testcontainers, SonarCloud, Docker Compose, Kubernetes/Kustomize, GitHub Actions ve GHCR.
+- SEM staj anlatimi: Surekli Egitim Merkezi domain'i, Java unit testleri, JUnit 5, Mockito, Spring Boot Test/MockMvc kullanilmis olabilecek test katmanlari, coverage ve test kalitesi. Kesin kullanilmayan teknoloji kullanildi diye anlatilmaz.
 - Docker, Agile/Scrum, ekip calismasi, AI tool kullanimi, prompt engineering, agent ile calisma.`;
 
 export const DEFAULT_MODELS: Record<AiProvider, string> = {
@@ -609,9 +611,9 @@ export const QUESTION_BANK: Question[] = [
     category: "Behavioral",
     prompt: "Bana projelerini anlat derlerse 90 saniyelik güçlü cevabın nasıl olmalı?",
     answer:
-      "Cevap problem, sorumluluk, teknoloji ve sonuç sırasıyla gitmeli. Örneğin: Son projemde sipariş ve stok akışını yöneten Spring Boot tabanlı bir backend üzerinde çalıştım. Controller-Service-Repository katmanında REST endpointler, JPA entity/repository, validation ve exception handling yazdım. Güvenlik tarafında JWT/OAuth2 Resource Server mantığını çalıştım. Microservice dönüşümünde order-service event üretir, product-service Kafka üzerinden stok günceller; duplicate event için idempotency ve outbox desenini ele aldım. Test, logging ve debugging ile hataları izole ettim.",
-    keywords: ["problem", "sorumluluk", "teknoloji", "sonuç", "spring boot", "test"],
-    tags: ["Behavioral", "Project"],
+      "Cevap problem, sorumluluk, teknoloji ve sonuç sırasıyla gitmeli. Örneğin: CRM projemizde müşteri, etkileşim ve operasyonel kayıtların yönetildiği Java 21 ve Spring Boot tabanlı bir sistem üzerinde çalıştık. Backend tarafında REST endpoint, service/repository katmanı, JPA entity, validation, exception handling ve Flyway migration akışlarını anlatabilirim. Microservice tarafında Gateway, Keycloak JWT doğrulama, Kafka event akışı, transactional outbox, Debezium CDC, Redis cache/idempotency ve Resilience4j ile kontrollü upstream çağrılarını çalıştık. Gözlemlenebilirlikte Actuator, Micrometer, Prometheus/Grafana ve trace tarafında OpenTelemetry/Zipkin; kalite tarafında JUnit 5, Mockito, Testcontainers, JaCoCo ve SonarCloud vardı. Sonuç olarak sadece kod yazmadım; test, log, deployment ve ekip içi teslimat akışını da gördüm.",
+    keywords: ["crm", "sorumluluk", "teknoloji", "spring boot", "gateway", "kafka", "test"],
+    tags: ["Behavioral", "Project", "CRM"],
   },
   {
     id: "why-java",
@@ -632,5 +634,370 @@ export const QUESTION_BANK: Question[] = [
       "Backend geliştirici olarak analistten gereksinim ve acceptance criteria netliği isterim, test uzmanıyla edge case ve UAT senaryolarını konuşurum, DevOps tarafıyla environment, pipeline, log ve deployment konularında koordineli olurum. Otomasyon testlerinin hangi akışı koruduğunu, manual UAT'nin kullanıcı beklentisini doğruladığını bilirim. İyi teslimat sadece kod yazmak değil, anlaşılır kontrat, test edilebilirlik ve izlenebilirlik sağlamaktır.",
     keywords: ["devops", "test", "uat", "analiz", "acceptance criteria", "pipeline"],
     tags: ["Team", "Delivery"],
+  },
+  {
+    id: "crm-architecture-overview",
+    level: "MID",
+    category: "Project CRM",
+    prompt: "CRM projesinin mimarisini Java 21, Spring Boot, Gateway, Kafka, Redis ve Keycloak stack'iyle nasıl anlatırsın?",
+    answer:
+      "CRM projesini müşteri ve operasyonel süreçleri yöneten çok katmanlı bir sistem olarak anlatırım. Frontend React/TypeScript/Vite ile kullanıcı arayüzünü sunar. Dış istekler Spring Cloud Gateway üzerinden geçer; burada routing, auth filter, rate limit ve header relay gibi edge concern'ler yönetilir. Backend servisler Java 21 ve Spring Boot ile REST endpoint, service, repository ve transaction katmanlarına ayrılır. PostgreSQL kalıcı veri kaynağıdır, Flyway schema migration'ı versiyonlar, JPA/Hibernate entity persistence sağlar. Kafka event tabanlı iletişim için, transactional outbox ve Debezium Kafka Connect güvenilir event yayını için kullanılır. Redis cache, idempotency key ve rate limit counter gibi hızlı state ihtiyaçlarında devreye girer. Keycloak JWT üretir, servisler OAuth2 Resource Server olarak token doğrular. Observability ve CI/CD katmanını da kısaca eklerim.",
+    keywords: ["crm", "gateway", "spring boot", "postgresql", "kafka", "redis", "keycloak", "observability"],
+    tags: ["CRM", "Architecture", "Microservices"],
+    mcq: {
+      options: [
+        "Gateway sadece React componentlerini render eder.",
+        "Kafka ve outbox servisler arası güvenilir event akışında kullanılır.",
+        "Flyway runtime cache tutmak için kullanılır.",
+        "Keycloak database migration aracıdır.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Kafka event iletişimini, outbox ise database transaction'ı ile event kaydını güvenilir bağlamayı sağlar.",
+    },
+    followUps: [
+      "Bu mimaride request path'i frontend'den database'e kadar nasıl akar?",
+      "Bu kadar çok teknolojiyi ezber gibi değil problem üzerinden nasıl anlatırsın?",
+    ],
+  },
+  {
+    id: "java21-spring-boot4",
+    level: "JR-MID",
+    category: "Spring Boot",
+    prompt: "Java 21 ve Spring Boot 4.0.6 kullanılan bir backend projesinde junior geliştirici olarak nelere hakim olmalısın?",
+    answer:
+      "Önce Java 21 tarafında record, switch expression, var, stream, optional, collection kullanımı ve exception yönetimi gibi günlük geliştirme konularını bilirim. Spring Boot tarafında auto-configuration, dependency injection, bean lifecycle, configuration properties, profile, validation, exception handling, controller-service-repository ayrımı ve transaction yönetimini anlatırım. Projede versiyon bilmek tek başına yeterli değildir; endpoint yazma, DTO/entity ayrımı, repository query, log okuma, unit test ve hata ayıklama pratiği beklenir.",
+    keywords: ["java 21", "spring boot", "dependency injection", "bean", "profile", "transaction", "dto"],
+    tags: ["Java 21", "Spring Boot", "Backend"],
+    mcq: {
+      options: [
+        "Sadece versiyon numarasını bilmek teknik hakimiyet için yeterlidir.",
+        "Spring Boot'ta DI, configuration, controller-service-repository ve transaction akışı bilinmelidir.",
+        "Java 21 kullanınca unit test gerekmez.",
+        "DTO ve entity her zaman aynı obje olmalıdır.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Mülakatta versiyondan çok bu versiyonla proje içinde hangi sorumlulukları aldığın ve temel Spring akışını bilmen beklenir.",
+    },
+  },
+  {
+    id: "spring-web-webflux-gateway",
+    level: "MID",
+    category: "REST & HTTP",
+    prompt: "Spring Web, WebFlux ve Spring Cloud Gateway farklarını CRM projesi üzerinden anlat.",
+    answer:
+      "Spring Web klasik servlet tabanlı blocking MVC stack'tir; çoğu CRUD endpoint için anlaşılır ve yeterlidir. WebFlux reactive/non-blocking programlama modelidir; yoğun IO ve streaming gibi senaryolarda anlamlı olabilir ama complexity getirir. Spring Cloud Gateway ise business endpoint yazdığımız yer değil, dış istekleri servislere yönlendiren edge katmanıdır. Gateway'de route, predicate, filter, auth propagation, rate limit, timeout ve header relay gibi konular konuşulur. Mülakatta her şeyi WebFlux yapmanın otomatik performans kazancı olmadığını, kullanım sebebinin problemle açıklanması gerektiğini söylemek iyi olur.",
+    keywords: ["spring web", "webflux", "gateway", "blocking", "reactive", "route", "filter"],
+    tags: ["Spring Web", "WebFlux", "Gateway"],
+    mcq: {
+      options: [
+        "Gateway service katmanındaki business logic'i yazmak için kullanılır.",
+        "WebFlux her projede Spring Web'den kesin daha hızlıdır.",
+        "Spring Web blocking MVC, WebFlux reactive stack, Gateway edge routing katmanıdır.",
+        "Gateway kullanınca servislerde security gerekmez.",
+      ],
+      correctIndex: 2,
+      explanation:
+        "Bu üçü farklı katman ve programlama modellerine karşılık gelir; doğru seçim problemin türüne bağlıdır.",
+    },
+  },
+  {
+    id: "springdoc-openapi-contract",
+    level: "JR-MID",
+    category: "REST & HTTP",
+    prompt: "Springdoc OpenAPI CRM projesinde ne sağlar? Swagger ekranı dışında neden önemlidir?",
+    answer:
+      "Springdoc OpenAPI REST endpointlerin request/response kontratını OpenAPI formatında dokümante eder. Sadece Swagger UI açmak değildir; frontend-backend anlaşması, QA test hazırlığı, client generation, endpoint keşfi ve breaking change farkındalığı sağlar. DTO isimleri, validation anotasyonları, status code'lar, error response yapısı ve security scheme doğru tanımlanırsa ekip içi iletişimi güçlendirir.",
+    keywords: ["springdoc", "openapi", "swagger", "contract", "dto", "status code", "client"],
+    tags: ["OpenAPI", "Documentation", "REST"],
+    mcq: {
+      options: [
+        "OpenAPI sadece veritabanı migration dosyası üretir.",
+        "OpenAPI endpoint kontratını ekipler arasında görünür ve test edilebilir hale getirir.",
+        "Swagger UI varsa validation gerekmez.",
+        "Springdoc Kafka topiclerini otomatik consume eder.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "OpenAPI dokümantasyonu API kontratının anlaşılması ve doğrulanması için kullanılır.",
+    },
+  },
+  {
+    id: "frontend-react-vite-typescript",
+    level: "JR-MID",
+    category: "Frontend",
+    prompt: "React 19, TypeScript 6, Vite 8 ve Lucide React kullanılan frontend'i backend mülakatında nasıl anlatırsın?",
+    answer:
+      "Backend adayından frontend uzmanı gibi derinlik beklenmeyebilir ama entegrasyon farkındalığı beklenir. React component tabanlı UI geliştirmek için, TypeScript tip güvenliği ve API DTO'larını daha kontrollü kullanmak için, Vite hızlı geliştirme server'ı ve build süreci için, Lucide React ise tutarlı icon seti için kullanılır. Backend ile contract tarafında OpenAPI, DTO alanları, auth token taşıma, error handling, pagination/filter parametreleri ve CORS/gateway route'ları konuşulabilir.",
+    keywords: ["react", "typescript", "vite", "lucide", "dto", "openapi", "auth"],
+    tags: ["React", "TypeScript", "Frontend Integration"],
+    mcq: {
+      options: [
+        "Lucide React backend transaction yönetir.",
+        "Vite database migration aracıdır.",
+        "Backend açısından frontend bilgisi API kontratı, auth, error ve state akışını anlamaya yarar.",
+        "TypeScript kullanınca runtime validation otomatik çözülür.",
+      ],
+      correctIndex: 2,
+      explanation:
+        "Backend mülakatında frontend stack'i en çok API kontratı ve entegrasyon sorumluluğu üzerinden anlatmak faydalıdır.",
+    },
+  },
+  {
+    id: "postgres-flyway-jpa-crm",
+    level: "MID",
+    category: "SQL & Database",
+    prompt: "PostgreSQL 16, Flyway, Spring Data JPA ve Hibernate CRM projesinde hangi sorumlulukları karşılar?",
+    answer:
+      "PostgreSQL relational veri kaynağıdır; CRM'de customer, contact, activity, note, task gibi tabloları tutabilir. Flyway schema değişikliklerini versiyonlu migration dosyalarıyla yönetir; ekipte herkes aynı database yapısına gelir. JPA Java persistence standardıdır, Hibernate bunun implementasyonudur. Spring Data JPA repository abstraction, query method, pagination ve transaction entegrasyonu sağlar. Junior seviyede entity ilişki tasarımı, index ihtiyacı, migration sırası, nullable/unique constraint, N+1 ve transaction boundary konularını bilmek önemlidir.",
+    keywords: ["postgresql", "flyway", "jpa", "hibernate", "migration", "repository", "index", "transaction"],
+    tags: ["PostgreSQL", "Flyway", "JPA"],
+    mcq: {
+      options: [
+        "Flyway cache invalidation yapar.",
+        "Hibernate OpenAPI dokümanı üretir.",
+        "Flyway migration'ları versiyonlar, JPA/Hibernate nesne-tablo eşlemesini yönetir.",
+        "PostgreSQL kullanınca transaction gerekmez.",
+      ],
+      correctIndex: 2,
+      explanation:
+        "Veri katmanında PostgreSQL storage, Flyway schema versioning, JPA/Hibernate persistence eşlemesi sağlar.",
+    },
+  },
+  {
+    id: "debezium-kafka-connect-outbox",
+    level: "MID",
+    category: "Microservices",
+    prompt: "Debezium Kafka Connect ve transactional outbox CRM projesinde birlikte nasıl çalışır?",
+    answer:
+      "Servis business transaction içinde hem ana kaydı hem de outbox tablosuna event kaydını yazar. Örneğin CustomerUpdatedEvent veya LeadAssignedEvent outbox'a düşer. Debezium Kafka Connect PostgreSQL değişiklik loglarını takip eder, outbox tablosundaki yeni kayıtları Kafka topic'lerine taşır. Böylece uygulama kodu event'i doğrudan Kafka'ya yazarken database commit başarısızlığı gibi atomicity sorunlarına daha az düşer. Consumer tarafında duplicate event ihtimali için idempotency yine gerekir.",
+    keywords: ["debezium", "kafka connect", "outbox", "cdc", "event", "atomicity", "idempotency"],
+    tags: ["Debezium", "Kafka Connect", "Outbox"],
+    mcq: {
+      options: [
+        "Debezium React componentlerini Kafka'ya taşır.",
+        "Outbox business transaction ile event kaydını aynı database commit'i içinde tutar.",
+        "Kafka Connect sadece CSS build eder.",
+        "CDC kullanınca duplicate event ihtimali tamamen yok olur.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Transactional outbox atomicity problemini azaltır; Debezium/Kafka Connect outbox değişikliklerini Kafka'ya aktarabilir.",
+    },
+  },
+  {
+    id: "redis-cache-idempotency-crm",
+    level: "MID",
+    category: "Microservices",
+    prompt: "Redis 7 CRM projesinde cache ve idempotency için nasıl kullanılır?",
+    answer:
+      "Redis düşük latency'li key-value store olarak sık okunan referans verilerini, rate limit counter'larını veya kısa ömürlü idempotency key'leri tutabilir. CRM'de örneğin aynı lead import isteğinin tekrar işlenmesini önlemek için idempotency key saklanabilir. Cache kullanımında TTL, invalidation, stale data, key naming ve fallback stratejisi konuşulmalıdır. Redis'e her şeyi koymak doğru değildir; kalıcı ve ilişkisel veri PostgreSQL'de kalır.",
+    keywords: ["redis", "cache", "idempotency key", "ttl", "rate limit", "invalidation", "stale"],
+    tags: ["Redis", "Cache", "Idempotency"],
+    mcq: {
+      options: [
+        "Redis relational foreign key constraint için kullanılır.",
+        "Redis cache, kısa ömürlü state, idempotency key ve counter senaryolarında kullanılabilir.",
+        "Cache kullanınca database'e hiç ihtiyaç kalmaz.",
+        "TTL cache tasarımında önemsizdir.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Redis hızlı erişim ve kısa ömürlü state için uygundur; cache invalidation ve TTL tasarımın parçasıdır.",
+    },
+  },
+  {
+    id: "keycloak-gateway-header-relay",
+    level: "MID",
+    category: "Security",
+    prompt: "Keycloak JWT, OAuth2 Resource Server ve gateway header relay akışını anlat.",
+    answer:
+      "Kullanıcı veya frontend Keycloak üzerinden token alır. İstek Gateway'e Bearer JWT ile gelir. Gateway token doğrulama, route authorization veya bazı header enrich/relay işlemleri yapabilir; ardından request'i ilgili servise yönlendirir. Backend servisler de OAuth2 Resource Server olarak JWT imzasını, issuer bilgisini ve claim/scope/role değerlerini doğrulamalıdır. Header relay, kullanıcı veya correlation bilgisinin downstream servislere taşınmasıdır; güvenilmeyen header'lar direkt kabul edilmemeli, gateway kontrolünde normalize edilmelidir.",
+    keywords: ["keycloak", "jwt", "oauth2 resource server", "gateway", "header relay", "issuer", "scope", "role"],
+    tags: ["Keycloak", "Gateway", "Security"],
+    mcq: {
+      options: [
+        "Gateway token gördüyse downstream servisler hiçbir kontrol yapmamalıdır.",
+        "Resource Server JWT issuer/imza/claim doğrulaması yapar.",
+        "Header relay kullanıcı şifresini tüm servislere göndermek demektir.",
+        "Keycloak sadece frontend icon kütüphanesidir.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Resource Server imzalı token doğrular; gateway header relay ise güvenli şekilde gerekli context'i servislere taşıyabilir.",
+    },
+  },
+  {
+    id: "resilience4j-upstream-calls",
+    level: "MID",
+    category: "Resilience",
+    prompt: "Resilience4j, rate limit, timeout ve kontrollü upstream çağrıları neden gerekir?",
+    answer:
+      "Microservice veya 3. parti API çağrılarında gecikme ve hata kaçınılmazdır. Timeout, sonsuz beklemeyi engeller. Retry geçici hatalarda işe yarar ama idempotent olmayan işlemlerde dikkatli kullanılmalıdır. Circuit breaker sürekli başarısız upstream'i kısa süreli devreden çıkarıp sistemi korur. Rate limiter belirli süre içinde çağrı sayısını sınırlar. CRM'de örneğin dış servisden müşteri skor bilgisi çekiyorsak fallback, log, metric ve kullanıcıya kontrollü hata mesajı tasarlanmalıdır.",
+    keywords: ["resilience4j", "timeout", "retry", "circuit breaker", "rate limiter", "fallback", "upstream"],
+    tags: ["Resilience4j", "Reliability"],
+    mcq: {
+      options: [
+        "Timeout kullanmak yerine thread'i sonsuza kadar bekletmek daha güvenlidir.",
+        "Retry her POST çağrısında sınırsız yapılmalıdır.",
+        "Circuit breaker, timeout, rate limit ve fallback failure propagation'ı kontrol eder.",
+        "Resilience sadece CSS bundle boyutunu azaltır.",
+      ],
+      correctIndex: 2,
+      explanation:
+        "Resilience pattern'leri bağımlı servis hatalarının tüm sistemi çökertmesini önlemek için kullanılır.",
+    },
+  },
+  {
+    id: "observability-actuator-micrometer-otel",
+    level: "MID",
+    category: "Observability",
+    prompt: "Actuator, Micrometer, Prometheus, Grafana, OpenTelemetry ve Zipkin farklarını proje üzerinden anlat.",
+    answer:
+      "Actuator uygulamanın health, metrics ve info gibi operational endpointlerini açar. Micrometer JVM ve application metriclerini ortak formatta toplama abstraction'ı sağlar. Prometheus bu metricleri scrape eder ve saklar. Grafana metric dashboard ve alarm görünümü sunar. OpenTelemetry trace, metric ve log sinyalleri için vendor-neutral instrumentation yaklaşımıdır. Zipkin distributed trace'leri görselleştirerek bir request'in Gateway'den backend servislere ve database/external call akışına kadar nerede geciktiğini anlamaya yardım eder.",
+    keywords: ["actuator", "micrometer", "prometheus", "grafana", "opentelemetry", "zipkin", "trace", "metrics"],
+    tags: ["Observability", "Metrics", "Tracing"],
+    mcq: {
+      options: [
+        "Grafana uygulama içinde repository implementasyonu sağlar.",
+        "Prometheus metric toplar, Grafana görselleştirir, Zipkin trace görünümü sağlar.",
+        "Actuator sadece React build aracıdır.",
+        "Tracing sadece unit test coverage yüzdesidir.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Observability araçları health, metric ve trace sinyallerini üretme, toplama ve görselleştirme rollerine ayrılır.",
+    },
+  },
+  {
+    id: "testing-stack-crm",
+    level: "JR-MID",
+    category: "Testing",
+    prompt: "JUnit 5, Mockito, Testcontainers, JaCoCo ve SonarCloud CRM projesinde nasıl konumlanır?",
+    answer:
+      "JUnit 5 test framework'üdür; test lifecycle, assertion ve parameterized test gibi imkanlar sağlar. Mockito bağımlılıkları mock'layarak service unit testlerini izole etmeye yarar. Testcontainers PostgreSQL, Kafka veya Redis gibi gerçek bağımlılıkları container ile ayağa kaldırıp integration test yazmayı sağlar. JaCoCo coverage raporu üretir ama tek başına kalite garantisi değildir. SonarCloud static analysis, code smell, bug, vulnerability ve coverage görünürlüğü sağlar. Mülakatta hangi katmanda hangi test yazdığını örnekle anlatmak gerekir.",
+    keywords: ["junit 5", "mockito", "testcontainers", "jacoco", "sonarcloud", "unit test", "integration test"],
+    tags: ["JUnit", "Mockito", "Testcontainers", "Quality"],
+    mcq: {
+      options: [
+        "Mockito gerçek PostgreSQL container'ı başlatır.",
+        "Testcontainers gerçek bağımlılıklarla integration test yazmaya yardım eder.",
+        "JaCoCo production log toplar.",
+        "SonarCloud sadece UI icon setidir.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Testcontainers dış bağımlılıkları container olarak çalıştırıp daha gerçekçi integration test ortamı sağlar.",
+    },
+  },
+  {
+    id: "devops-github-actions-ghcr-kustomize",
+    level: "MID",
+    category: "DevOps & Team",
+    prompt: "Docker Compose, Kubernetes/Kustomize, GitHub Actions ve GHCR image publish akışını anlat.",
+    answer:
+      "Docker Compose local geliştirmede backend, database, Redis, Kafka gibi servisleri birlikte ayağa kaldırmak için kullanılır. CI tarafında GitHub Actions checkout, build, test, static analysis, image build ve publish adımlarını çalıştırabilir. GHCR GitHub Container Registry'dir; build edilen container image burada saklanır. Kubernetes deployment ortamıdır; Kustomize environment bazlı manifest patch'leriyle dev/stage/prod konfigürasyon farklarını yönetebilir. Junior seviyede en azından local compose, CI test adımı, image tag ve deployment manifest mantığını anlatmak beklenir.",
+    keywords: ["docker compose", "kubernetes", "kustomize", "github actions", "ghcr", "image", "ci"],
+    tags: ["Docker", "Kubernetes", "CI/CD"],
+    mcq: {
+      options: [
+        "GHCR SQL migration aracıdır.",
+        "Kustomize React state yönetir.",
+        "GitHub Actions CI adımlarını, GHCR image registry'yi, Kustomize Kubernetes manifest farklarını yönetir.",
+        "Docker Compose sadece production Kubernetes cluster'ıdır.",
+      ],
+      correctIndex: 2,
+      explanation:
+        "DevOps akışında local compose, CI pipeline, image registry ve deployment manifestleri ayrı sorumluluklardır.",
+    },
+  },
+  {
+    id: "sem-project-domain",
+    level: "JR",
+    category: "Internship SEM",
+    prompt: "Staj yaptığın SEM (Sürekli Eğitim Merkezi) projesini mülakatta dürüst ve teknik şekilde nasıl anlatırsın?",
+    answer:
+      "SEM projesini eğitim, kurs, başvuru/kayıt, katılımcı, eğitmen, program ve sertifika gibi domain nesneleri üzerinden anlatabilirim. Stajyer olarak tüm mimariyi ben kurdum demek yerine, var olan Java projesinde belirli modülleri incelediğimi, unit test yazdığımı, servis metotlarının beklenen davranışlarını doğruladığımı, hata senaryolarını ve edge case'leri öğrendiğimi söylemek daha güvenilir olur. Kullandığım kesin araçları net söylerim; emin olmadığım teknolojileri ise 'projede karşılaşmış olabilirim ama aktif sorumluluğum unit test tarafındaydı' diye ayırırım.",
+    keywords: ["sem", "staj", "unit test", "domain", "kurs", "katılımcı", "dürüst"],
+    tags: ["Internship", "SEM", "Behavioral"],
+    mcq: {
+      options: [
+        "Kullanmadığın teknolojileri daha güçlü görünmek için kullandım demelisin.",
+        "Domain, sorumluluk ve yazdığın testleri net anlatıp emin olmadığın teknolojileri ayırmalısın.",
+        "Staj projesinde unit test yazmak teknik deneyim sayılmaz.",
+        "SEM projesini sadece frontend rengi üzerinden anlatmalısın.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Mülakatta güvenilirlik önemlidir; gerçek sorumluluğu net ama teknik bağlamla anlatmak en doğru yaklaşımdır.",
+    },
+  },
+  {
+    id: "sem-unit-test-stack",
+    level: "JR-MID",
+    category: "Internship SEM",
+    prompt: "SEM projesinde Java unit test yazdıysan hangi teknolojileri kullanmış olabilirsin ve neyi test etmişsindir?",
+    answer:
+      "Tipik Java/Spring projelerinde unit test için JUnit 5, Mockito, AssertJ veya Spring Boot Test kullanılabilir. Controller testlerinde MockMvc veya WebTestClient; service testlerinde Mockito ile repository/client bağımlılıklarını mock'lamak; repository/integration testlerinde H2 ya da Testcontainers kullanmak mümkündür. SEM projesinde örneğin kurs başvuru validasyonu, kontenjan kontrolü, tarih çakışması, kayıt iptali veya sertifika uygunluğu gibi iş kuralları testlenebilir. Kesin kullanmadığın aracı 'kullandım' deme; 'bu tarz projede bu araçlar kullanılır, benim yazdığım testler service logic ve edge case odaklıydı' şeklinde sınır çiz.",
+    keywords: ["junit 5", "mockito", "assertj", "mockmvc", "spring boot test", "edge case", "service"],
+    tags: ["Internship", "JUnit", "Mockito", "Testing"],
+    mcq: {
+      options: [
+        "Service unit testinde dış bağımlılıkları mock'lamak izolasyon sağlar.",
+        "Unit test mutlaka gerçek production database'e bağlanmalıdır.",
+        "Mockito endpoint dokümantasyonu üretir.",
+        "MockMvc Kafka topic partition sayısını artırır.",
+      ],
+      correctIndex: 0,
+      explanation:
+        "Unit testte amaç iş kuralını hızlı ve izole doğrulamaktır; dış bağımlılıklar genellikle mock'lanır.",
+    },
+    followUps: [
+      "Bir service metoduna unit test yazarken arrange-act-assert yapısını nasıl kurarsın?",
+      "Unit test ile integration test farkını SEM projesinden örnekle açıkla.",
+    ],
+  },
+  {
+    id: "controller-service-test-strategy",
+    level: "JR-MID",
+    category: "Testing",
+    prompt: "Controller, service ve repository katmanları için test stratejisini nasıl ayırırsın?",
+    answer:
+      "Controller testinde HTTP status, request validation, response body ve error mapping doğrulanır; MockMvc veya WebTestClient kullanılabilir. Service unit testinde business rule izole edilir; repository, external client veya mapper gibi bağımlılıklar Mockito ile mock'lanabilir. Repository testinde query ve mapping davranışı gerçekçi database ile doğrulanır; Testcontainers burada değerlidir. Her katmanda aynı şeyi tekrar test etmek yerine, riskli davranışı doğru seviyede testlemek gerekir.",
+    keywords: ["controller test", "service test", "repository test", "mockmvc", "mockito", "testcontainers", "validation"],
+    tags: ["Testing", "Layered Architecture"],
+    mcq: {
+      options: [
+        "Her test sadece controller seviyesinde yazılmalıdır.",
+        "Service unit test business rule'u izole eder, repository test query/mapping davranışını doğrular.",
+        "Repository testinde HTTP status kontrol edilir.",
+        "Controller testinde database index performansı ölçülür.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Katmanlara göre test amacı değişir; doğru test seviyesi bakım maliyetini azaltır.",
+    },
+  },
+  {
+    id: "crm-version-stack-risk",
+    level: "JR-MID",
+    category: "Project CRM",
+    prompt: "Mülakatta çok güncel versiyonlar sorulursa Java 21, Spring Boot 4.0.6, Spring Cloud 2025.1.1 gibi bilgileri nasıl savunursun?",
+    answer:
+      "Versiyon numaralarını ezberlemek yerine neden seçildiğini ve projede neye temas ettiğimi anlatırım. Java 21 runtime ve language feature seviyesini, Spring Boot 4.0.6 uygulama geliştirme ve auto-configuration ekosistemini, Spring Cloud 2025.1.1 ise Gateway ve cloud-native integration tarafını temsil eder. Kritik nokta compatibility matrix, dependency management, BOM kullanımı, release notes okuma ve CI build ile doğrulamadır. Bilmediğim breaking change varsa uydurmam; projede karşılaştığım somut migration veya dependency sorununu anlatırım.",
+    keywords: ["java 21", "spring boot 4", "spring cloud", "bom", "compatibility", "release notes", "ci"],
+    tags: ["Versioning", "Spring Cloud", "Project"],
+    mcq: {
+      options: [
+        "Versiyon uyumluluğu önemli değildir; her Spring Cloud her Boot sürümüyle çalışır.",
+        "Güncel stack'te BOM, compatibility matrix, release notes ve CI build doğrulaması önemlidir.",
+        "Java 21 kullanınca dependency management gerekmez.",
+        "Breaking change sorulursa rastgele cevap vermek en iyisidir.",
+      ],
+      correctIndex: 1,
+      explanation:
+        "Modern Spring projelerinde versiyon hakimiyeti dependency yönetimi ve uyumluluk doğrulamasıyla birlikte anlatılır.",
+    },
   },
 ];

@@ -20,8 +20,12 @@ test("app source contains the interview simulator surface", async () => {
   assert.match(page, /Deepgram key/);
   assert.match(page, /Deepgram STT \+ Browser TR TTS/);
   assert.match(page, /browser-tr-TR/);
+  assert.match(page, /CRM mimarisi, Java 21, Spring Boot 4, Gateway/);
   assert.match(questions, /HashMap nasıl çalışır/);
   assert.match(questions, /Transactional Outbox Pattern/);
+  assert.match(questions, /CRM projesinin mimarisini Java 21/);
+  assert.match(questions, /SEM projesinde Java unit test/);
+  assert.match(questions, /JUnit 5, Mockito, Testcontainers/);
   assert.doesNotMatch(page, /Çarşamba teknik mülakatına yoğun hazırlık/);
   assert.doesNotMatch(page, /target-panel|targetDiffLabel/);
 });
